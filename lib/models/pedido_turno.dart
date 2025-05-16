@@ -36,4 +36,21 @@ class PedidoTurno {
       'timestamp': timestamp,
     };
   }
+
+  // Method to create a copy of PedidoTurno with updated fields
+  PedidoTurno copyWith({
+    String? id,
+    String? establecimientoId,
+    String? clienteId,
+    String? estado,
+    Timestamp? timestamp,
+  }) {
+    return PedidoTurno(
+      id: id ?? this.id,
+      establecimientoId: establecimientoId ?? this.establecimientoId,
+      clienteId: clienteId ?? this.clienteId,
+      estado: estado ?? this.estado,
+      timestamp: timestamp ?? this.timestamp,
+    );
+  }
 }

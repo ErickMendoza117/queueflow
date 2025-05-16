@@ -38,34 +38,74 @@ class EstablishmentQueueScreen extends StatelessWidget {
             itemCount: pedidosTurnos.length,
             itemBuilder: (context, index) {
               final pedidoTurno = pedidosTurnos[index];
-              return ListTile(
-                title: Text('Pedido/Turno ID: ${pedidoTurno.id}'),
-                subtitle: Text('Estado: ${pedidoTurno.estado}'),
-                trailing: DropdownButton<String>(
-                  value: pedidoTurno.estado,
-                  items:
-                      <String>['en espera', 'listo', 'cancelado'].map((
-                        String value,
-                      ) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      // TODO: Implement update logic
-                      print('Updating ${pedidoTurno.id} to $newValue');
-                      // _pedidoTurnoService.updatePedidoTurno(pedidoTurno.copyWith(estado: newValue));
-                    }
-                  },
-                ),
-                // TODO: Add more details if needed
-              );
+              return _PedidoTurnoListItem(
+                pedidoTurno: pedidoTurno,
+              ); // Use the new stateful widget
             },
           );
         },
       ),
+    );
+  }
+}
+
+// New Stateful Widget for each list item
+class _PedidoTurnoListItem extends StatefulWidget {
+  final PedidoTurno pedidoTurno;
+
+  const _PedidoTurnoListItem({required this.pedidoTurno});
+
+  @override
+  _PedidoTurnoListItemState createState() => _PedidoTurnoListItemState();
+}
+
+class _PedidoTurnoListItemState extends State<_PedidoTurnoListItem> {
+  final PedidoTurnoService _pedidoTurnoService = PedidoTurnoService();
+  late String _selectedStatus; // State for the dropdown value
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedStatus =
+        widget.pedidoTurno.estado; // Initialize with the current status
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text('Pedido/Turno ID: ${widget.pedidoTurno.id}'),
+      subtitle: Text(
+        'Estado: ${widget.pedidoTurno.estado}',
+      ), // Display current state from the model
+      trailing: DropdownButton<String>(
+        value: _selectedStatus, // Use the state variable
+        items:
+            <String>['en espera', 'listo', 'cancelado'].map((String value) {
+              return DropdownMenuItem<String>(value: value, child: Text(value));
+            }).toList(),
+        onChanged: (String? newValue) async {
+          if (newValue != null) {
+            setState(() {
+              _selectedStatus = newValue; // Update the state
+            });
+            try {
+              final updatedPedidoTurno = widget.pedidoTurno.copyWith(
+                estado: newValue,
+              );
+              await _pedidoTurnoService.updatePedidoTurno(updatedPedidoTurno);
+              print('Updated ${widget.pedidoTurno.id} to $newValue');
+            } catch (e) {
+              // TODO: Show error message to user
+              print('Error updating pedido/turno status: $e');
+              // If update fails, revert the state (optional, but good for UX)
+              setState(() {
+                _selectedStatus = widget.pedidoTurno.estado;
+              });
+            }
+          }
+        },
+      ),
+      // TODO: Add more details if needed
     );
   }
 }
