@@ -12,6 +12,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   String _email = '';
   String _password = '';
+  String _errorMessage = '';
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
@@ -24,10 +25,14 @@ class _LoginScreenState extends State<LoginScreen> {
         // Navigate to home screen on successful login
         Navigator.pushReplacementNamed(context, '/home');
       } on FirebaseAuthException catch (e) {
-        // TODO: Show error message to user
+        setState(() {
+          _errorMessage = 'Error de inicio de sesión: ${e.message}';
+        });
         print('Error de inicio de sesión: ${e.message}');
       } catch (e) {
-        // TODO: Show generic error message
+        setState(() {
+          _errorMessage = 'Error inesperado: $e';
+        });
         print('Error inesperado: $e');
       }
     }
@@ -77,6 +82,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: _login,
                 child: const Text('Iniciar Sesión'),
               ),
+              if (_errorMessage
+                  .isNotEmpty) // Display error message if not empty
+                Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: Text(
+                    _errorMessage,
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               TextButton(
                 onPressed: () {
                   Navigator.pushNamed(context, '/register');
