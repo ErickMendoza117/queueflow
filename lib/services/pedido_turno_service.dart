@@ -34,6 +34,24 @@ class PedidoTurnoService {
         });
   }
 
+  // Get a stream of orders/turns for a specific establishment and client
+  Stream<List<PedidoTurno>> getPedidosTurnosByEstablecimientoAndCliente(
+    String establecimientoId,
+    String clienteId,
+  ) {
+    return _firestore
+        .collection('pedidos_turnos')
+        .where('establecimientoId', isEqualTo: establecimientoId)
+        .where('clienteId', isEqualTo: clienteId)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => PedidoTurno.fromDocument(doc))
+              .toList();
+        });
+  }
+
   // Add a new order/turn
   Future<void> addPedidoTurno(PedidoTurno pedidoTurno) {
     return _firestore

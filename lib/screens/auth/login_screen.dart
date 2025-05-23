@@ -98,6 +98,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
                 child: const Text('¿No tienes cuenta? Regístrate aquí'),
               ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pushReplacementNamed(context, '/login');
+                },
+                child: const Text('Regresar al Inicio de Sesión'),
+              ),
             ],
           ),
         ),
