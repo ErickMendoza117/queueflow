@@ -16,10 +16,22 @@ class EstablishmentQueueScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cola del Establecimiento'),
+        title: const Text(
+          'Cola del Establecimiento',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Colors.white),
+            tooltip: 'Cerrar Sesión',
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               Navigator.pushReplacementNamed(context, '/login');
@@ -27,37 +39,63 @@ class EstablishmentQueueScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: StreamBuilder<List<PedidoTurno>>(
-        stream: _pedidoTurnoService.getPedidosTurnosByEstablecimiento(
-          establecimientoId,
+      extendBodyBehindAppBar: true,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF2C3E50),
+              Color(0xFF4A6572),
+            ], // Dark Blue-Grey to Muted Blue
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
         ),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: StreamBuilder<List<PedidoTurno>>(
+              stream: _pedidoTurnoService.getPedidosTurnosByEstablecimiento(
+                establecimientoId,
+              ),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  );
+                }
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          final pedidosTurnos = snapshot.data ?? [];
+                final pedidosTurnos = snapshot.data ?? [];
 
-          if (pedidosTurnos.isEmpty) {
-            return const Center(
-              child: Text('No hay pedidos o turnos en la cola.'),
-            );
-          }
+                if (pedidosTurnos.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No hay pedidos o turnos en la cola.',
+                      style: TextStyle(color: Colors.white.withOpacity(0.8)),
+                    ),
+                  );
+                }
 
-          return ListView.builder(
-            itemCount: pedidosTurnos.length,
-            itemBuilder: (context, index) {
-              final pedidoTurno = pedidosTurnos[index];
-              return _PedidoTurnoListItem(
-                pedidoTurno: pedidoTurno,
-              ); // Use the new stateful widget
-            },
-          );
-        },
+                return ListView.builder(
+                  itemCount: pedidosTurnos.length,
+                  itemBuilder: (context, index) {
+                    final pedidoTurno = pedidosTurnos[index];
+                    return _PedidoTurnoListItem(
+                      pedidoTurno: pedidoTurno,
+                    ); // Use the new stateful widget
+                  },
+                );
+              },
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -96,7 +134,6 @@ class _PedidoTurnoListItemState extends State<_PedidoTurnoListItem> {
         _isLoadingCustomer = false;
       });
     } catch (e) {
-      print('Error loading customer user: $e');
       setState(() {
         _isLoadingCustomer = false;
       });
@@ -110,71 +147,141 @@ class _PedidoTurnoListItemState extends State<_PedidoTurnoListItem> {
       return const ListTile(title: Text('Cargando cliente...'));
     }
 
-    return ListTile(
-      title: Text('Pedido/Turno ID: ${widget.pedidoTurno.id}'),
-      subtitle: Text(
-        'Cliente: ${_customerUser?.email ?? 'Desconocido'}\n' // Display customer email
-                'Estado: ${widget.pedidoTurno.estado}' + // Display current state from the model
-            (widget.pedidoTurno.mensaje != null &&
-                    widget.pedidoTurno.mensaje!.isNotEmpty
-                ? '\nMensaje: ${widget.pedidoTurno.mensaje}' // Display message if available
-                : ''),
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.white.withOpacity(0.95), // Slightly less transparent
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18), // More rounded
       ),
-      trailing: Row(
-        // Use a Row to place multiple widgets in the trailing position
-        mainAxisSize: MainAxisSize.min, // Keep the row size to a minimum
-        children: [
-          DropdownButton<String>(
-            value: _selectedStatus, // Use the state variable
-            items:
-                <String>['en espera', 'listo', 'cancelado'].map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-            onChanged: (String? newValue) async {
-              if (newValue != null) {
-                setState(() {
-                  _selectedStatus = newValue; // Update the state
-                });
-                try {
-                  final updatedPedidoTurno = widget.pedidoTurno.copyWith(
-                    estado: newValue,
-                  );
-                  await _pedidoTurnoService.updatePedidoTurno(
-                    updatedPedidoTurno,
-                  );
-                  print('Updated ${widget.pedidoTurno.id} to $newValue');
-                } catch (e) {
-                  // TODO: Show error message to user
-                  print('Error updating pedido/turno status: $e');
-                  // If update fails, revert the state (optional, but good for UX)
-                  setState(() {
-                    _selectedStatus = widget.pedidoTurno.estado;
-                  });
-                }
-              }
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete, color: Colors.red),
-            onPressed: () async {
-              try {
-                await _pedidoTurnoService.deletePedidoTurno(
-                  widget.pedidoTurno.id,
-                );
-                // TODO: Show success message
-                print('Pedido/Turno ${widget.pedidoTurno.id} eliminado.');
-              } catch (e) {
-                // TODO: Show error message
-                print(
-                  'Error al eliminar pedido/turno ${widget.pedidoTurno.id}: $e',
-                );
-              }
-            },
-          ),
-        ],
+      elevation: 8, // More prominent shadow
+      shadowColor: Colors.black.withOpacity(0.2),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0), // More padding
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Pedido/Turno ID: ${widget.pedidoTurno.id}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF34495E), // Dark blue-grey text
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Cliente: ${_customerUser?.email ?? 'Desconocido'}',
+              style: TextStyle(color: Colors.grey[600], fontSize: 15),
+            ),
+            Text(
+              'Mensaje: ${widget.pedidoTurno.mensaje != null && widget.pedidoTurno.mensaje!.isNotEmpty ? widget.pedidoTurno.mensaje : 'N/A'}',
+              style: TextStyle(color: Colors.grey[600], fontSize: 15),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      labelText: 'Estado',
+                      labelStyle: const TextStyle(
+                        color: Color(0xFF34495E),
+                      ), // Darker label text
+                      filled: true,
+                      fillColor: Colors.white, // Solid white background
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFF9AA33),
+                          width: 2,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 12,
+                      ),
+                    ),
+                    value: _selectedStatus,
+                    dropdownColor: const Color(
+                      0xFF4A6572,
+                    ), // Muted Blue for dropdown background
+                    items:
+                        <String>['en espera', 'listo', 'cancelado'].map((
+                          String value,
+                        ) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(
+                              value,
+                              style: const TextStyle(
+                                color: Colors.white,
+                              ), // White text for dropdown items
+                            ),
+                          );
+                        }).toList(),
+                    selectedItemBuilder: (BuildContext context) {
+                      return <String>['en espera', 'listo', 'cancelado'].map((
+                        String value,
+                      ) {
+                        return Text(
+                          value,
+                          style: const TextStyle(
+                            color: Color(0xFF34495E),
+                          ), // Dark blue-grey text for selected item
+                        );
+                      }).toList();
+                    },
+                    iconEnabledColor: const Color(
+                      0xFF34495E,
+                    ), // Dropdown arrow color
+                    onChanged: (String? newValue) async {
+                      if (newValue != null) {
+                        setState(() {
+                          _selectedStatus = newValue;
+                        });
+                        try {
+                          final updatedPedidoTurno = widget.pedidoTurno
+                              .copyWith(estado: newValue);
+                          await _pedidoTurnoService.updatePedidoTurno(
+                            updatedPedidoTurno,
+                          );
+                        } catch (e) {
+                          setState(() {
+                            _selectedStatus = widget.pedidoTurno.estado;
+                          });
+                        }
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                IconButton(
+                  icon: const Icon(
+                    Icons.delete,
+                    color: Colors.redAccent,
+                    size: 30,
+                  ),
+                  onPressed: () async {
+                    try {
+                      await _pedidoTurnoService.deletePedidoTurno(
+                        widget.pedidoTurno.id,
+                      );
+                    } catch (e) {}
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

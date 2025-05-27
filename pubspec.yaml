@@ -1,6 +1,6 @@
 name: queueflow
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 version: 0.1.0
 
 environment:
@@ -14,6 +14,7 @@ dependencies:
   cloud_firestore: ^5.6.7
   firebase_messaging: ^15.2.5
   flutter_local_notifications: ^19.2.0
+  shared_preferences: ^2.2.3
 
 dev_dependencies:
   flutter_test:
